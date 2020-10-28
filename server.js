@@ -33,6 +33,8 @@ io.on("connect", socket => {
   });
 });
 
+app.use(express.static("./public"));
+
 server.listen(3000, () => {
   console.log("Listening on 3000");
 });
