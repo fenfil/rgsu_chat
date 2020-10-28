@@ -1,4 +1,5 @@
-const socket = io("http://localhost:3000");
+const socket = io();
+
 const userInput = document.getElementById("username");
 const roomInput = document.getElementById("room");
 const startBtn = document.getElementById("start");
