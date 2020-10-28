@@ -1,0 +1,25 @@
+.page2 {
+}
+.hidden {
+  display: none;
+}
+.users {
+}
+.messages {
+  height: 50vh;
+  overflow-y: scroll;
+}
+.users span {
+  margin: 0 3px;
+}
+.container {
+  padding: 10px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-shadow: 0 0 20px 0 rgba(0, 0, 0, 0.2);
+}
+.hr {
+  width: 70%;
+  border: 0.5px solid rgba(0, 0, 0, 0.2);
+  margin: 5px auto;
+}
