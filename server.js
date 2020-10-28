@@ -1,6 +1,7 @@
 const express = require("express");
 const socketio = require("socket.io");
 const http = require("http");
+const morgan = require("morgan");
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,7 @@ io.on("connect", socket => {
   });
 });
 
+app.use(morgan("tiny"));
 app.use(express.static("./public"));
 
 server.listen(3000, () => {
