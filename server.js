@@ -7,30 +7,28 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-const rooms = {};
+const users = new Set();
+const messages = [];
 
 io.on("connect", socket => {
-  let room, name;
-  socket.on("join", ({ room: r, name: n }, cb) => {
-    room = r;
+  let name;
+  socket.on("join", ({ name: n }, cb) => {
     name = n;
-    if (rooms[room]) rooms[room].users.push(name);
-    else rooms[room] = { users: [name], messages: [] };
-
-    io.to(`room:${room}`).emit("user_joined", name);
-    socket.join(`room:${room}`);
-    cb(rooms[room]);
+    users.add(n);
+    cb(messages);
   });
-  socket.on("msg", text => {
-    rooms[room].messages.push({ text, name });
-    io.to(`room:${room}`).emit("msg", { text, name });
+  socket.on("msg", (text, cb) => {
+    if (text.startsWith("/")) {
+      if (text == "/room") {
+        return cb(Array.from(users));
+      }
+      return cb("Unknown command");
+    }
+    messages.push({ text, name });
+    io.emit("msg", { text, name });
   });
   socket.on("disconnect", () => {
-    if (!rooms[room]) return;
-
-    const i = rooms[room].users.indexOf(name);
-    rooms[room].users.splice(i, 1);
-    io.to(`room:${room}`).emit("user_left", name);
+    users.delete(name);
   });
 });
 
