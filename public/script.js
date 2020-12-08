@@ -41,10 +41,14 @@ msgBtn.addEventListener("click", e => {
 const msgNode = msg => `<p>${msg.name ? `${msg.name}: ` : ""}${msg.text}</p>`;
 
 function join() {
-  socket.emit("join", { name }, data => {
-    messagesWrapper.innerHTML = data.map(msgNode).join("");
+  socket.emit("join", { name }, (err, data) => {
+    if (err) messagesWrapper.innerHTML = msgNode({ text: err });
+    else messagesWrapper.innerHTML = data.map(msgNode).join("");
   });
   socket.on("msg", data => {
     messagesWrapper.innerHTML += msgNode(data);
+  });
+  socket.on("disconnect", () => {
+    messagesWrapper.innerHTML += msgNode({ text: "You were disconnected" });
   });
 }
