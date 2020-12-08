@@ -31,6 +31,7 @@ msgBtn.addEventListener("click", e => {
   e.preventDefault();
   const text = msgInput.value;
   msgInput.value = "";
+  messagesWrapper.innerHTML += msgNode({ text });
   socket.emit("msg", text, text => {
     if (text) {
       messagesWrapper.innerHTML += msgNode({ text });
