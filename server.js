@@ -10,6 +10,7 @@ const server = http.createServer(app);
 const io = socketio(server);
 
 const users = new Set();
+const admins = new Set();
 const messages = [];
 const isUserValid = name => name.match(/^[a-zA-Z_]{4,255}$/);
 const shouldSaveLogs = process.argv.includes("-l");
@@ -31,9 +32,8 @@ function hash(text) {
     .update(text)
     .digest("hex");
 }
-
 io.on("connect", socket => {
-  let name, isAdmin;
+  let name;
   socket.on("join", ({ name: n }, cb) => {
     if (!isUserValid(n))
       return cb(
@@ -55,8 +55,12 @@ io.on("connect", socket => {
           const user = text.slice(0, text.indexOf(" "));
           const msg = text.slice(text.indexOf(" ") + 1);
           if (name === user || !users.has(user)) return cb("no such user");
-          io.to(`user:${name}`).emit("msg", { text: msg, user: name });
-          io.to(`user:${user}`).emit("msg", { text: msg, user: name });
+          // io.to(`user:${name}`).emit("msg", { text: msg, user: name, private: true });
+          io.to(`user:${user}`).emit("msg", {
+            text: msg,
+            user: name,
+            private: true
+          });
           savemsg(`[private ${name}]: ${text}`);
         } else if (text.startsWith("/rename ")) {
           const newName = text.slice(8).trim();
@@ -76,10 +80,10 @@ io.on("connect", socket => {
         } else if (text.startsWith("/auth ")) {
           const password = text.slice(6).trim();
           if (adminPasswordHash !== hash(password)) return cb("Wrong password");
-          isAdmin = true;
+          admins.add(name);
           cb("Now you are admin");
         } else if (text.startsWith("/disconnect ")) {
-          if (!isAdmin) return cb("Not authorized");
+          if (!admins.has(name)) return cb("Not authorized");
           const user = text.slice(12).trim();
           for (const socketId in io.sockets.sockets) {
             const socket = io.sockets.sockets[socketId];
@@ -89,6 +93,9 @@ io.on("connect", socket => {
               break;
             }
           }
+        } else if (text.startsWith("/admins ")) {
+          if (!admins.has(name)) return cb("Not authorized");
+          cb(Array.from(admins).join(", "));
         } else {
           cb("Unknown command");
         }
@@ -99,6 +106,8 @@ io.on("connect", socket => {
       io.emit("msg", { text, name });
     });
     socket.on("disconnect", () => {
+      console.log("disconnect");
+
       users.delete(name);
     });
   });
@@ -109,4 +118,50 @@ app.use(express.static("./public"));
 
 server.listen(3000, () => {
   console.log("Listening on 3000");
+});
+
+//bot
+
+const socket = require("socket.io-client")("http://127.0.0.1:3000");
+
+const getRandom = (...args) => {
+  const r = (Math.random() * args.length) | 0;
+  return args[r];
+};
+
+socket.on("connect", () => {
+  console.log("bot connected");
+  socket.emit("join", { name: "mr_bot" }, () => {
+    socket.emit("msg", "/auth cats", () => {});
+  });
+});
+socket.on("msg", msg => {
+  if (!msg.private) return;
+  msg.text = msg.text.trim();
+  const messages = () => [
+    ["How is is going?", getRandom("Well, man", "going..")],
+    ["Hi", getRandom("Hi, man", "Yeah hiiii", "Yoo")],
+    [
+      "admins",
+      getRandom(Array.from(admins).join(", "), "admins? Who are they..")
+    ]
+  ];
+
+  const msgs = messages();
+  const m = msgs.find(m => m[0] == msg.text);
+
+  if (msg.text == "help") {
+    socket.emit("msg", `/msg ${msg.user} possible commands:`, data => {});
+    msgs.forEach(m => {
+      socket.emit("msg", `/msg ${msg.user} '${m[0]}'`, data => {});
+    });
+  } else if (m) {
+    socket.emit("msg", `/msg ${msg.user} ${m[1]}`, data => {});
+  } else {
+    socket.emit(
+      "msg",
+      `/msg ${msg.user} Hey man, keep calm, try typing '/msg help'`,
+      data => {}
+    );
+  }
 });
