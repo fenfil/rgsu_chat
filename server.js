@@ -12,7 +12,7 @@ const io = socketio(server);
 const users = new Set();
 const admins = new Set();
 const messages = [];
-const isUserValid = name => name.match(/^[a-zA-Z_]{4,255}$/);
+const isUserValid = (name) => name.match(/^[a-zA-Z_]{4,255}$/);
 const shouldSaveLogs = process.argv.includes("-l");
 const adminPassword = "cats";
 const secret = "many";
@@ -20,19 +20,16 @@ const adminPasswordHash = hash(adminPassword);
 
 if (shouldSaveLogs) console.log("Will save logs");
 
-const savemsg = msg => {
+const savemsg = (msg) => {
   if (shouldSaveLogs)
-    fs.writeFile("./logs.txt", `${msg}\n`, { flag: "a" }, err => {
+    fs.writeFile("./logs.txt", `${msg}\n`, { flag: "a" }, (err) => {
       if (err) console.error(err);
     });
 };
 function hash(text) {
-  return crypto
-    .createHmac("sha256", secret)
-    .update(text)
-    .digest("hex");
+  return crypto.createHmac("sha256", secret).update(text).digest("hex");
 }
-io.on("connect", socket => {
+io.on("connect", (socket) => {
   let name;
   socket.on("join", ({ name: n }, cb) => {
     if (!isUserValid(n))
@@ -59,7 +56,7 @@ io.on("connect", socket => {
           io.to(`user:${user}`).emit("msg", {
             text: msg,
             user: name,
-            private: true
+            private: true,
           });
           savemsg(`[private ${name}]: ${text}`);
         } else if (text.startsWith("/rename ")) {
@@ -135,33 +132,34 @@ socket.on("connect", () => {
     socket.emit("msg", "/auth cats", () => {});
   });
 });
-socket.on("msg", msg => {
+socket.on("msg", async (msg) => {
   if (!msg.private) return;
   msg.text = msg.text.trim();
   const messages = () => [
+    ["rand", '<img src="https://picsum.photos/200" />'],
     ["How is is going?", getRandom("Well, man", "going..")],
     ["Hi", getRandom("Hi, man", "Yeah hiiii", "Yoo")],
     [
       "admins",
-      getRandom(Array.from(admins).join(", "), "admins? Who are they..")
-    ]
+      getRandom(Array.from(admins).join(", "), "admins? Who are they.."),
+    ],
   ];
 
   const msgs = messages();
-  const m = msgs.find(m => m[0] == msg.text);
+  const m = msgs.find((m) => m[0] == msg.text);
 
   if (msg.text == "help") {
-    socket.emit("msg", `/msg ${msg.user} possible commands:`, data => {});
-    msgs.forEach(m => {
-      socket.emit("msg", `/msg ${msg.user} '${m[0]}'`, data => {});
+    socket.emit("msg", `/msg ${msg.user} possible commands:`, (data) => {});
+    msgs.forEach((m) => {
+      socket.emit("msg", `/msg ${msg.user} '${m[0]}'`, (data) => {});
     });
   } else if (m) {
-    socket.emit("msg", `/msg ${msg.user} ${m[1]}`, data => {});
+    socket.emit("msg", `/msg ${msg.user} ${m[1]}`, (data) => {});
   } else {
     socket.emit(
       "msg",
-      `/msg ${msg.user} Hey man, keep calm, try typing '/msg help'`,
-      data => {}
+      `/msg ${msg.user} Hey man, keep calm, try typing '/msg mr_bot help'`,
+      (data) => {}
     );
   }
 });

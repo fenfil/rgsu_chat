@@ -17,7 +17,25 @@ socket.on("connect", () => {
   console.log("connect");
 });
 
-startBtn.addEventListener("click", e => {
+const sendMessage = () => {
+  const text = msgInput.value;
+  msgInput.value = "";
+  messagesWrapper.innerHTML += msgNode({ text });
+  socket.emit("msg", text, (text) => {
+    if (text) {
+      messagesWrapper.innerHTML += msgNode({ text });
+    }
+  });
+};
+
+document.addEventListener("keypress", (e) => {
+  if (e.key == "Enter") {
+    sendMessage();
+    msgInput.focus();
+  }
+});
+
+startBtn.addEventListener("click", (e) => {
   e.preventDefault();
   name = userInput.value;
 
@@ -27,26 +45,19 @@ startBtn.addEventListener("click", e => {
   join();
 });
 
-msgBtn.addEventListener("click", e => {
+msgBtn.addEventListener("click", (e) => {
   e.preventDefault();
-  const text = msgInput.value;
-  msgInput.value = "";
-  messagesWrapper.innerHTML += msgNode({ text });
-  socket.emit("msg", text, text => {
-    if (text) {
-      messagesWrapper.innerHTML += msgNode({ text });
-    }
-  });
+  sendMessage();
 });
 
-const msgNode = msg => `<p>${msg.name ? `${msg.name}: ` : ""}${msg.text}</p>`;
+const msgNode = (msg) => `<p>${msg.name ? `${msg.name}: ` : ""}${msg.text}</p>`;
 
 function join() {
   socket.emit("join", { name }, (err, data) => {
     if (err) messagesWrapper.innerHTML = msgNode({ text: err });
     else messagesWrapper.innerHTML = data.map(msgNode).join("");
   });
-  socket.on("msg", data => {
+  socket.on("msg", (data) => {
     messagesWrapper.innerHTML += msgNode(data);
   });
   socket.on("disconnect", () => {
